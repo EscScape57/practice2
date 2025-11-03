@@ -91,8 +91,8 @@ def download_packages_file(url):
     """
     print(f"📥 Скачивание файла пакетов: {url}")
     try:
-        # Скачиваем файл
-        with urllib.request.urlopen(url) as response:
+        # Добавляем таймаут
+        with urllib.request.urlopen(url, timeout=30) as response:
             compressed_data = response.read()
         
         # Распаковываем gzip
@@ -159,7 +159,13 @@ def stage2_collect_dependencies(config):
     print("🚀 ЭТАП 2: Сбор данных о зависимостях")
     print("="*50)
     
-    # Скачиваем и парсим файл пакетов
+    # Если тестовый режим, пропускаем скачивание
+    if config['test_mode']:
+        print("🧪 Тестовый режим: пропуск скачивания пакетов")
+        # Возвращаем пустой список, зависимости будут получены в Этапе 3
+        return []
+    
+    # Реальный режим: скачиваем и парсим файл пакетов
     packages_content = download_packages_file(config['repository_url'])
     if packages_content is None:
         return []
@@ -176,6 +182,176 @@ def stage2_collect_dependencies(config):
         print("  (нет зависимостей)")
     
     return dependencies
+
+def build_dependency_graph_bfs(config, start_package, initial_dependencies):
+    """
+    Строит полный граф зависимостей с помощью BFS
+    """
+    print(f"\n🔄 Построение графа зависимостей для '{start_package}'...")
+    print(f"   Максимальная глубина: {config['max_depth']}")
+    print(f"   Фильтр: '{config['filter_substring']}'")
+    
+    # Граф зависимостей {пакет: [зависимости]}
+    graph = {start_package: initial_dependencies}
+    # Очередь для BFS: (пакет, текущая_глубина)
+    queue = []
+    # Множество посещенных пакетов для избежания циклов
+    visited = set([start_package])
+    
+    # Добавляем начальные зависимости в очередь
+    for dep in initial_dependencies:
+        if dep not in visited:
+            queue.append((dep, 1))  # (пакет, глубина=1)
+    
+    # Скачиваем файл пакетов один раз (кэшируем)
+    packages_content = None
+    if not config['test_mode']:
+        print("   📥 Загрузка файла пакетов...")
+        packages_content = download_packages_file(config['repository_url'])
+        if not packages_content:
+            print("   ❌ Не удалось загрузить файл пакетов")
+            return graph
+    
+    # BFS обход
+    while queue:
+        current_package, current_depth = queue.pop(0)
+        
+        # Пропускаем если уже посещали
+        if current_package in visited:
+            continue
+        
+        visited.add(current_package)
+        
+        # Проверяем максимальную глубину
+        if current_depth >= config['max_depth']:
+            print(f"   ℹ️  Пропуск '{current_package}' (достигнута максимальная глубина)")
+            graph[current_package] = []
+            continue
+        
+        # Фильтруем пакеты по подстроке
+        if config['filter_substring'] and config['filter_substring'] in current_package:
+            print(f"   ℹ️  Пропуск '{current_package}' (фильтр: '{config['filter_substring']}')")
+            graph[current_package] = []
+            continue
+        
+        print(f"   🔍 Анализ пакета '{current_package}' (глубина {current_depth})...")
+        
+        # Получаем зависимости для текущего пакета
+        try:
+            if config['test_mode']:
+                # Тестовый режим - используем тестовые данные
+                dependencies = get_test_dependencies(current_package)
+            else:
+                # Реальный режим - парсим из скачанного файла
+                dependencies = parse_package_dependencies(packages_content, current_package)
+            
+            graph[current_package] = dependencies
+            
+            # Добавляем зависимости в очередь для дальнейшего обхода
+            for dep in dependencies:
+                if dep not in visited:
+                    queue.append((dep, current_depth + 1))
+                    
+        except Exception as e:
+            print(f"   ❌ Ошибка при анализе '{current_package}': {e}")
+            graph[current_package] = []
+    
+    print(f"✅ Граф построен! Всего пакетов: {len(graph)}")
+    return graph
+
+def get_test_dependencies(package):
+    """
+    Возвращает тестовые зависимости для демонстрации
+    """
+    test_data = {
+        "A": ["B", "C", "D"],
+        "B": ["E", "F"],
+        "C": ["G", "H"],
+        "D": ["I", "J"],
+        "E": ["K", "L"],
+        "F": ["M", "N"],
+        "G": ["O", "P"],
+        "H": ["Q", "R"]
+    }
+    return test_data.get(package, [])
+
+def test_mode_parse_dependencies(file_path, start_package):
+    """
+    Режим тестирования: парсит зависимости из тестового файла
+    """
+    print(f"🧪 Тестовый режим: чтение из файла {file_path}")
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+        
+        # Простой формат: A: B, C, D
+        graph = {}
+        lines = content.strip().split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line and ':' in line:
+                package, deps_str = line.split(':', 1)
+                package = package.strip()
+                dependencies = [dep.strip() for dep in deps_str.split(',')]
+                graph[package] = [d for d in dependencies if d]  # Фильтруем пустые
+        
+        # Получаем зависимости для стартового пакета
+        if start_package in graph:
+            initial_deps = graph[start_package]
+            print(f"✅ Найдены зависимости для '{start_package}': {initial_deps}")
+            return graph, initial_deps
+        else:
+            print(f"❌ Пакет '{start_package}' не найден в тестовом файле")
+            return graph, []
+            
+    except FileNotFoundError:
+        print(f"❌ Тестовый файл '{file_path}' не найден")
+        return {}, []
+    except Exception as e:
+        print(f"❌ Ошибка чтения тестового файла: {e}")
+        return {}, []
+
+def stage3_build_dependency_graph(config, initial_dependencies):
+    """
+    Этап 3: Построение полного графа зависимостей
+    """
+    print("\n" + "="*50)
+    print("🚀 ЭТАП 3: Построение графа зависимостей")
+    print("="*50)
+    
+    if config['test_mode']:
+        print("🧪 ТЕСТОВЫЙ РЕЖИМ")
+        # В тестовом режиме получаем начальные зависимости из тестового файла
+        graph, deps_from_file = test_mode_parse_dependencies(
+            config['repository_url'],  # путь к тестовому файлу
+            config['package_name']
+        )
+        if deps_from_file:
+            graph = build_dependency_graph_bfs(config, config['package_name'], deps_from_file)
+        else:
+            graph = build_dependency_graph_bfs(config, config['package_name'], [])
+    else:
+        print("🌐 РЕАЛЬНЫЙ РЕЖИМ")
+        # В реальном режиме используем зависимости из Этапа 2
+        graph = build_dependency_graph_bfs(config, config['package_name'], initial_dependencies)
+    
+    # Выводим статистику графа
+    print(f"\n📊 Статистика графа:")
+    print(f"   Всего пакетов: {len(graph)}")
+    total_dependencies = sum(len(deps) for deps in graph.values())
+    print(f"   Всего зависимостей: {total_dependencies}")
+    
+    # Выводим граф в читаемом формате
+    print(f"\n🌳 Граф зависимостей:")
+    for package, deps in sorted(graph.items()):
+        if deps:
+            print(f"   {package} -> {', '.join(deps)}")
+        else:
+            print(f"   {package} -> (нет зависимостей)")
+    
+    return graph
 
 def main():
     """
@@ -195,10 +371,13 @@ def main():
     # Этап 2: Сбор данных о зависимостях
     dependencies = stage2_collect_dependencies(config)
     
-    print("\n✅ Этап 2 завершен!")
+    # Этап 3: Построение полного графа зависимостей
+    graph = stage3_build_dependency_graph(config, dependencies)
     
-    # Сохраняем зависимости для следующего этапа
-    return config, dependencies
+    print("\n✅ Этап 3 завершен!")
+    
+    # Сохраняем данные для следующих этапов
+    return config, dependencies, graph
 
 if __name__ == "__main__":
-    config, dependencies = main()
+    config, dependencies, graph = main()
