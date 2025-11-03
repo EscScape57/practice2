@@ -1,7 +1,6 @@
-# Конфигурационный файл для анализа зависимостей пакетов Ubuntu
-package_name: "firefox"              # Имя анализируемого пакета
+package_name: "firefox"
 repository_url: "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/Packages.gz"
-test_mode: false                     # Режим работы с тестовым репозиторием
-output_image: "dependency_graph.png" # Имя файла для изображения графа
-max_depth: 3                         # Максимальная глубина анализа
-filter_substring: "lib"              # Подстрока для фильтрации пакетов
+test_mode: false
+output_image: "dependency_graph.png"
+max_depth: 3
+filter_substring: "lib"
