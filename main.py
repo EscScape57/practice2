@@ -353,6 +353,106 @@ def stage3_build_dependency_graph(config, initial_dependencies):
     
     return graph
 
+def find_reverse_dependencies(graph, target_package):
+    """
+    Находит обратные зависимости - пакеты, которые зависят от target_package
+    """
+    print(f"🔍 Поиск обратных зависимостей для '{target_package}' в построенном графе...")
+    
+    reverse_deps = []
+    
+    # Проходим по всем пакетам в графе
+    for package, dependencies in graph.items():
+        # Если target_package есть в зависимостях этого пакета
+        if target_package in dependencies:
+            reverse_deps.append(package)
+    
+    print(f"✅ Найдено обратных зависимостей в графе: {len(reverse_deps)}")
+    return reverse_deps
+
+def find_reverse_dependencies_advanced(config, target_package):
+    """
+    Находит обратные зависимости анализируя ВСЕ пакеты в репозитории
+    """
+    print(f"🔍 Расширенный поиск обратных зависимостей для '{target_package}'...")
+    
+    # Скачиваем полный файл пакетов
+    packages_content = download_packages_file(config['repository_url'])
+    if not packages_content:
+        return []
+    
+    reverse_deps = []
+    lines = packages_content.split('\n')
+    current_package = None
+    current_dependencies = []
+    
+    # Парсим все пакеты в репозитории
+    for line in lines:
+        line = line.strip()
+        
+        if line.startswith('Package: '):
+            # Сохраняем предыдущий пакет если он зависит от target_package
+            if current_package and target_package in current_dependencies:
+                reverse_deps.append(current_package)
+            
+            # Начинаем новый пакет
+            current_package = line[9:]
+            current_dependencies = []
+            
+        elif line.startswith('Depends: '):
+            # Парсим зависимости текущего пакета
+            dep_line = line[9:]
+            raw_deps = dep_line.split(',')
+            for dep in raw_deps:
+                dep = dep.strip()
+                if ' (' in dep:
+                    dep_name = dep.split(' (')[0].strip()
+                else:
+                    dep_name = dep.split(' ')[0].strip()
+                if dep_name:
+                    current_dependencies.append(dep_name)
+    
+    # Проверяем последний пакет
+    if current_package and target_package in current_dependencies:
+        reverse_deps.append(current_package)
+    
+    # Убираем дубликаты и сортируем
+    reverse_deps = sorted(list(set(reverse_deps)))
+    
+    print(f"✅ Найдено обратных зависимостей в репозитории: {len(reverse_deps)}")
+    return reverse_deps
+
+def stage4_reverse_dependencies(config, graph):
+    """
+    Этап 4: Поиск обратных зависимостей
+    """
+    print("\n" + "="*50)
+    print("🚀 ЭТАП 4: Поиск обратных зависимостей")
+    print("="*50)
+    
+    # Способ 1: Быстрый поиск в уже построенном графе (ограниченный)
+    simple_reverse_deps = find_reverse_dependencies(graph, config['package_name'])
+    
+    # Способ 2: Расширенный поиск по всему репозиторию (полный)
+    print("\n--- РАСШИРЕННЫЙ ПОИСК ---")
+    full_reverse_deps = find_reverse_dependencies_advanced(config, config['package_name'])
+    
+    # Выводим результаты
+    print(f"\n🔄 Пакеты, зависящие от '{config['package_name']}':")
+    
+    if full_reverse_deps:
+        print(f"📊 Всего найдено: {len(full_reverse_deps)} пакетов")
+        print("\n📦 Первые 20 пакетов:")
+        for i, package in enumerate(full_reverse_deps[:20], 1):
+            print(f"  {i}. {package}")
+        
+        if len(full_reverse_deps) > 20:
+            print(f"  ... и еще {len(full_reverse_deps) - 20} пакетов")
+    else:
+        print("  (нет обратных зависимостей)")
+    
+    return full_reverse_deps
+
 def main():
     """
     Основная функция программы
@@ -374,10 +474,12 @@ def main():
     # Этап 3: Построение полного графа зависимостей
     graph = stage3_build_dependency_graph(config, dependencies)
     
-    print("\n✅ Этап 3 завершен!")
+    # Этап 4: Поиск обратных зависимостей
+    reverse_deps = stage4_reverse_dependencies(config, graph)
     
-    # Сохраняем данные для следующих этапов
-    return config, dependencies, graph
+    print("\n✅ Все этапы завершены!")
+    
+    return config, dependencies, graph, reverse_deps
 
 if __name__ == "__main__":
-    config, dependencies, graph = main()
+    config, dependencies, graph, reverse_deps = main()

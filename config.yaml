@@ -1,6 +1,6 @@
-package_name: "firefox"
+package_name: "libc6"
 repository_url: "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/Packages.gz"
 test_mode: false
 output_image: "dependency_graph.png"
-max_depth: 2
-filter_substring: "lib"
+max_depth: 1
+filter_substring: ""
