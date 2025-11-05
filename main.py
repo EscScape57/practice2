@@ -453,6 +453,154 @@ def stage4_reverse_dependencies(config, graph):
     
     return full_reverse_deps
 
+import subprocess
+import tempfile
+import os
+
+def generate_dot_graph(graph, main_package):
+    """
+    Генерирует DOT-код для Graphviz из графа зависимостей
+    """
+    print("🔄 Генерация DOT-кода для визуализации...")
+    
+    dot_lines = [
+        "digraph Dependencies {",
+        "    rankdir=TB;",
+        "    node [shape=box, style=filled, fillcolor=lightblue];",
+        "    edge [color=darkgreen];",
+        "    concentrate=true;",
+        ""
+    ]
+    
+    # Добавляем главный пакет с другим цветом
+    dot_lines.append(f'    "{main_package}" [fillcolor=orange, style=filled];')
+    dot_lines.append("")
+    
+    # Добавляем все зависимости
+    for package, dependencies in sorted(graph.items()):
+        for dep in dependencies:
+            dot_lines.append(f'    "{package}" -> "{dep}";')
+    
+    dot_lines.append("}")
+    
+    dot_content = "\n".join(dot_lines)
+    print("✅ DOT-код сгенерирован")
+    return dot_content
+
+def save_graph_image(config, graph):
+    """
+    Сохраняет граф в PNG файл используя Graphviz
+    """
+    print(f"💾 Сохранение графа в файл: {config['output_image']}")
+    
+    # Генерируем DOT-код
+    dot_content = generate_dot_graph(graph, config['package_name'])
+    
+    try:
+        # Создаем временный DOT-файл
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as dot_file:
+            dot_file.write(dot_content)
+            dot_path = dot_file.name
+        
+        # Конвертируем DOT в PNG используя Graphviz
+        result = subprocess.run([
+            'dot', '-Tpng', dot_path, '-o', config['output_image']
+        ], capture_output=True, text=True)
+        
+        # Удаляем временный DOT-файл
+        os.unlink(dot_path)
+        
+        if result.returncode == 0:
+            print(f"✅ Граф успешно сохранен в {config['output_image']}")
+            return True
+        else:
+            print(f"❌ Ошибка Graphviz: {result.stderr}")
+            return False
+            
+    except FileNotFoundError:
+        print("❌ Graphviz не установлен. Установите: 'brew install graphviz' или 'apt install graphviz'")
+        return False
+    except Exception as e:
+        print(f"❌ Ошибка при сохранении графа: {e}")
+        return False
+
+def generate_text_visualization(graph, main_package):
+    """
+    Создает текстовую визуализацию графа в виде дерева
+    """
+    print("🔄 Генерация текстовой визуализации...")
+    
+    def build_tree(package, depth=0, visited=None):
+        if visited is None:
+            visited = set()
+        
+        if package in visited:
+            return f"{'  ' * depth}└── {package} ⤴ (цикл)\n"
+        
+        visited.add(package)
+        
+        tree = f"{'  ' * depth}└── {package}\n"
+        
+        if package in graph and graph[package]:
+            for i, dep in enumerate(graph[package]):
+                if i == len(graph[package]) - 1:
+                    tree += build_tree(dep, depth + 1, visited.copy())
+                else:
+                    tree += build_tree(dep, depth + 1, visited.copy())
+        
+        return tree
+    
+    tree_visualization = f"🌳 Дерево зависимостей для '{main_package}':\n"
+    tree_visualization += build_tree(main_package)
+    
+    return tree_visualization
+
+def stage5_visualization(config, graph):
+    """
+    Этап 5: Визуализация графа зависимостей
+    Требование: Сформировать текстовое представление графа на языке диаграмм Graphviz
+    """
+    print("\n" + "="*50)
+    print("🎨 ЭТАП 5: Визуализация графа")
+    print("="*50)
+    
+    # Генерируем полный DOT-код
+    print("🔄 Формирование текстового представления графа на языке Graphviz...")
+    dot_content = generate_dot_graph(graph, config['package_name'])
+    
+    # СОХРАНЯЕМ полный DOT-код в файл (требование)
+    dot_filename = config['output_image'].replace('.png', '.dot')
+    try:
+        with open(dot_filename, 'w', encoding='utf-8') as f:
+            f.write(dot_content)
+        print(f"💾 Полный DOT-код сохранен в файл: {dot_filename}")
+    except Exception as e:
+        print(f"❌ Ошибка сохранения DOT-файла: {e}")
+        return False
+    
+    # ВЫВОДИМ полное текстовое представление на языке Graphviz (требование этапа)
+    print(f"\n📋 ПОЛНОЕ ТЕКСТОВОЕ ПРЕДСТАВЛЕНИЕ ГРАФА НА ЯЗЫКЕ GRAPHVIZ:")
+    print("=" * 80)
+    print(dot_content)
+    print("=" * 80)
+    
+    # Дополнительная информация
+    print(f"\n📊 Статистика визуализации:")
+    print(f"   • Главный пакет: {config['package_name']}")
+    print(f"   • Всего пакетов в графе: {len(graph)}")
+    print(f"   • Всего зависимостей: {sum(len(deps) for deps in graph.values())}")
+    print(f"   • Файл с DOT-кодом: {dot_filename}")
+    
+    # Инструкции для визуализации
+    print(f"\n🌐 Инструкции для визуализации:")
+    print(f"   1. Скопируйте ВЕСЬ текст выше (между линиями ====)")
+    print(f"   2. Перейдите на https://edotor.net/")
+    print(f"   3. Вставьте скопированный текст в левую панель")
+    print(f"   4. Нажмите кнопку 'Generate Graph'")
+    print(f"   5. ИЛИ используйте файл: {dot_filename}")
+    
+    return True
+
 def main():
     """
     Основная функция программы
@@ -477,9 +625,12 @@ def main():
     # Этап 4: Поиск обратных зависимостей
     reverse_deps = stage4_reverse_dependencies(config, graph)
     
+    # Этап 5: Визуализация графа
+    visualization_success = stage5_visualization(config, graph)
+    
     print("\n✅ Все этапы завершены!")
     
-    return config, dependencies, graph, reverse_deps
+    return config, dependencies, graph, reverse_deps, visualization_success
 
 if __name__ == "__main__":
-    config, dependencies, graph, reverse_deps = main()
+    config, dependencies, graph, reverse_deps, visualization_success = main()

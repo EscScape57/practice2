@@ -1,6 +1,6 @@
-package_name: "libc6"
-repository_url: "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/Packages.gz"
-test_mode: false
+package_name: "A"
+repository_url: "test_repository.txt"
+test_mode: true
 output_image: "dependency_graph.png"
-max_depth: 1
+max_depth: 3
 filter_substring: ""
