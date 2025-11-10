@@ -159,21 +159,26 @@ def stage2_collect_dependencies(config):
     print(" ЭТАП 2: Сбор данных о зависимостях")
     print("="*50)
     
-    # Если тестовый режим, пропускаем скачивание
+    dependencies = []
+    
     if config['test_mode']:
-        print(" Тестовый режим: пропуск скачивания пакетов")
-        # Возвращаем пустой список, зависимости будут получены в Этапе 3
-        return []
+        print(" Тестовый режим: получение зависимостей из тестового файла")
+        # В тестовом режиме тоже получаем зависимости из файла
+        graph, deps_from_file = test_mode_parse_dependencies(
+            config['repository_url'],
+            config['package_name']
+        )
+        dependencies = deps_from_file
+    else:
+        # Реальный режим: скачиваем и парсим файл пакетов
+        packages_content = download_packages_file(config['repository_url'])
+        if packages_content is None:
+            return []
+        
+        # Ищем зависимости для указанного пакета
+        dependencies = parse_package_dependencies(packages_content, config['package_name'])
     
-    # Реальный режим: скачиваем и парсим файл пакетов
-    packages_content = download_packages_file(config['repository_url'])
-    if packages_content is None:
-        return []
-    
-    # Ищем зависимости для указанного пакета
-    dependencies = parse_package_dependencies(packages_content, config['package_name'])
-    
-    # Выводим зависимости (требование этапа)
+    # ВЫВОДИМ ПРЯМЫЕ ЗАВИСИМОСТИ (требование этапа 3)
     print(f"\n Прямые зависимости пакета '{config['package_name']}':")
     if dependencies:
         for i, dep in enumerate(dependencies, 1):

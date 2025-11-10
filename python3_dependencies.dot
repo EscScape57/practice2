@@ -1,0 +1,32 @@
+digraph Dependencies {
+    rankdir=TB;
+    node [shape=box, style=filled, fillcolor=lightblue];
+    edge [color=darkgreen];
+    concentrate=true;
+
+    "postgresql" [fillcolor=orange, style=filled];
+
+    "postgresql" -> "postgresql-12";
+    "postgresql-12" -> "libuuid1";
+    "postgresql-12" -> "libldap-2.4-2";
+    "postgresql-12" -> "libxml2";
+    "postgresql-12" -> "libsystemd0";
+    "postgresql-12" -> "zlib1g";
+    "postgresql-12" -> "postgresql-common";
+    "postgresql-12" -> "debconf";
+    "postgresql-12" -> "libllvm10";
+    "postgresql-12" -> "libxslt1.1";
+    "postgresql-12" -> "libgssapi-krb5-2";
+    "postgresql-12" -> "locales";
+    "postgresql-12" -> "libgcc-s1";
+    "postgresql-12" -> "libc6";
+    "postgresql-12" -> "libssl1.1";
+    "postgresql-12" -> "tzdata";
+    "postgresql-12" -> "libstdc++6";
+    "postgresql-12" -> "ssl-cert";
+    "postgresql-12" -> "libpam0g";
+    "postgresql-12" -> "libpq5";
+    "postgresql-12" -> "libselinux1";
+    "postgresql-12" -> "libicu66";
+    "postgresql-12" -> "postgresql-client-12";
+}
