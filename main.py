@@ -34,14 +34,14 @@ def load_config(config_path="config.yaml"):
                     
                     config[key] = value
         
-        print(f"✅ Загружено {len(config)} параметров из конфигурации")
+        print(f" Загружено {len(config)} параметров из конфигурации")
         return config
         
     except FileNotFoundError:
-        print(f"❌ Ошибка: Конфигурационный файл '{config_path}' не найден")
+        print(f" Ошибка: Конфигурационный файл '{config_path}' не найден")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Неожиданная ошибка при чтении '{config_path}': {e}")
+        print(f" Неожиданная ошибка при чтении '{config_path}': {e}")
         sys.exit(1)
 
 def validate_config(config):
@@ -49,12 +49,12 @@ def validate_config(config):
     Проверяет, что все необходимые параметры присутствуют в конфигурации
     """
     if config is None:
-        print("❌ Ошибка: Конфигурация не загружена (None)")
+        print(" Ошибка: Конфигурация не загружена (None)")
         sys.exit(1)
     
     required_fields = [
         'package_name',
-        'repository_url', 
+        'repository_url',
         'test_mode',
         'output_image',
         'max_depth',
@@ -67,12 +67,12 @@ def validate_config(config):
             missing_fields.append(field)
     
     if missing_fields:
-        print(f"❌ Ошибка: В конфигурации отсутствуют обязательные поля: {', '.join(missing_fields)}")
+        print(f" Ошибка: В конфигурации отсутствуют обязательные поля: {', '.join(missing_fields)}")
         sys.exit(1)
     
     # Проверка типов данных
     if not isinstance(config['max_depth'], int) or config['max_depth'] < 1:
-        print("❌ Ошибка: 'max_depth' должен быть положительным целым числом")
+        print(" Ошибка: 'max_depth' должен быть положительным целым числом")
         sys.exit(1)
 
 def print_config(config):
@@ -89,7 +89,7 @@ def download_packages_file(url):
     """
     Скачивает и распаковывает файл Packages.gz
     """
-    print(f"📥 Скачивание файла пакетов: {url}")
+    print(f" Скачивание файла пакетов: {url}")
     try:
         # Добавляем таймаут
         with urllib.request.urlopen(url, timeout=30) as response:
@@ -99,10 +99,10 @@ def download_packages_file(url):
         decompressed_data = gzip.decompress(compressed_data)
         content = decompressed_data.decode('utf-8')
         
-        print("✅ Файл пакетов успешно загружен и распакован")
+        print(" Файл пакетов успешно загружен и распакован")
         return content
     except Exception as e:
-        print(f"❌ Ошибка при загрузке файла пакетов: {e}")
+        print(f" Ошибка при загрузке файла пакетов: {e}")
         return None
 
 def parse_package_dependencies(packages_content, package_name):
@@ -145,7 +145,7 @@ def parse_package_dependencies(packages_content, package_name):
     dependencies = list(set([dep for dep in dependencies if dep]))
     
     if dependencies:
-        print(f"✅ Найдено зависимостей: {len(dependencies)}")
+        print(f" Найдено зависимостей: {len(dependencies)}")
     else:
         print("ℹ️  Зависимости не найдены или пакет не существует")
     
@@ -156,12 +156,12 @@ def stage2_collect_dependencies(config):
     Этап 2: Сбор данных о зависимостях
     """
     print("\n" + "="*50)
-    print("🚀 ЭТАП 2: Сбор данных о зависимостях")
+    print(" ЭТАП 2: Сбор данных о зависимостях")
     print("="*50)
     
     # Если тестовый режим, пропускаем скачивание
     if config['test_mode']:
-        print("🧪 Тестовый режим: пропуск скачивания пакетов")
+        print(" Тестовый режим: пропуск скачивания пакетов")
         # Возвращаем пустой список, зависимости будут получены в Этапе 3
         return []
     
@@ -174,7 +174,7 @@ def stage2_collect_dependencies(config):
     dependencies = parse_package_dependencies(packages_content, config['package_name'])
     
     # Выводим зависимости (требование этапа)
-    print(f"\n📦 Прямые зависимости пакета '{config['package_name']}':")
+    print(f"\n Прямые зависимости пакета '{config['package_name']}':")
     if dependencies:
         for i, dep in enumerate(dependencies, 1):
             print(f"  {i}. {dep}")
@@ -187,7 +187,7 @@ def build_dependency_graph_bfs(config, start_package, initial_dependencies):
     """
     Строит полный граф зависимостей с помощью BFS
     """
-    print(f"\n🔄 Построение графа зависимостей для '{start_package}'...")
+    print(f"\n Построение графа зависимостей для '{start_package}'...")
     print(f"   Максимальная глубина: {config['max_depth']}")
     print(f"   Фильтр: '{config['filter_substring']}'")
     
@@ -206,10 +206,10 @@ def build_dependency_graph_bfs(config, start_package, initial_dependencies):
     # Скачиваем файл пакетов один раз (кэшируем)
     packages_content = None
     if not config['test_mode']:
-        print("   📥 Загрузка файла пакетов...")
+        print("    Загрузка файла пакетов...")
         packages_content = download_packages_file(config['repository_url'])
         if not packages_content:
-            print("   ❌ Не удалось загрузить файл пакетов")
+            print("    Не удалось загрузить файл пакетов")
             return graph
     
     # BFS обход
@@ -224,17 +224,17 @@ def build_dependency_graph_bfs(config, start_package, initial_dependencies):
         
         # Проверяем максимальную глубину
         if current_depth >= config['max_depth']:
-            print(f"   ℹ️  Пропуск '{current_package}' (достигнута максимальная глубина)")
+            print(f"   Пропуск '{current_package}' (достигнута максимальная глубина)")
             graph[current_package] = []
             continue
         
         # Фильтруем пакеты по подстроке
         if config['filter_substring'] and config['filter_substring'] in current_package:
-            print(f"   ℹ️  Пропуск '{current_package}' (фильтр: '{config['filter_substring']}')")
+            print(f"   Пропуск '{current_package}' (фильтр: '{config['filter_substring']}')")
             graph[current_package] = []
             continue
         
-        print(f"   🔍 Анализ пакета '{current_package}' (глубина {current_depth})...")
+        print(f"    Анализ пакета '{current_package}' (глубина {current_depth})...")
         
         # Получаем зависимости для текущего пакета
         try:
@@ -253,10 +253,10 @@ def build_dependency_graph_bfs(config, start_package, initial_dependencies):
                     queue.append((dep, current_depth + 1))
                     
         except Exception as e:
-            print(f"   ❌ Ошибка при анализе '{current_package}': {e}")
+            print(f"    Ошибка при анализе '{current_package}': {e}")
             graph[current_package] = []
     
-    print(f"✅ Граф построен! Всего пакетов: {len(graph)}")
+    print(f" Граф построен! Всего пакетов: {len(graph)}")
     return graph
 
 def get_test_dependencies(package):
@@ -279,7 +279,7 @@ def test_mode_parse_dependencies(file_path, start_package):
     """
     Режим тестирования: парсит зависимости из тестового файла
     """
-    print(f"🧪 Тестовый режим: чтение из файла {file_path}")
+    print(f" Тестовый режим: чтение из файла {file_path}")
     
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -300,17 +300,17 @@ def test_mode_parse_dependencies(file_path, start_package):
         # Получаем зависимости для стартового пакета
         if start_package in graph:
             initial_deps = graph[start_package]
-            print(f"✅ Найдены зависимости для '{start_package}': {initial_deps}")
+            print(f" Найдены зависимости для '{start_package}': {initial_deps}")
             return graph, initial_deps
         else:
-            print(f"❌ Пакет '{start_package}' не найден в тестовом файле")
+            print(f" Пакет '{start_package}' не найден в тестовом файле")
             return graph, []
             
     except FileNotFoundError:
-        print(f"❌ Тестовый файл '{file_path}' не найден")
+        print(f" Тестовый файл '{file_path}' не найден")
         return {}, []
     except Exception as e:
-        print(f"❌ Ошибка чтения тестового файла: {e}")
+        print(f" Ошибка чтения тестового файла: {e}")
         return {}, []
 
 def stage3_build_dependency_graph(config, initial_dependencies):
@@ -318,11 +318,11 @@ def stage3_build_dependency_graph(config, initial_dependencies):
     Этап 3: Построение полного графа зависимостей
     """
     print("\n" + "="*50)
-    print("🚀 ЭТАП 3: Построение графа зависимостей")
+    print(" ЭТАП 3: Построение графа зависимостей")
     print("="*50)
     
     if config['test_mode']:
-        print("🧪 ТЕСТОВЫЙ РЕЖИМ")
+        print(" ТЕСТОВЫЙ РЕЖИМ")
         # В тестовом режиме получаем начальные зависимости из тестового файла
         graph, deps_from_file = test_mode_parse_dependencies(
             config['repository_url'],  # путь к тестовому файлу
@@ -333,18 +333,18 @@ def stage3_build_dependency_graph(config, initial_dependencies):
         else:
             graph = build_dependency_graph_bfs(config, config['package_name'], [])
     else:
-        print("🌐 РЕАЛЬНЫЙ РЕЖИМ")
+        print(" РЕАЛЬНЫЙ РЕЖИМ")
         # В реальном режиме используем зависимости из Этапа 2
         graph = build_dependency_graph_bfs(config, config['package_name'], initial_dependencies)
     
     # Выводим статистику графа
-    print(f"\n📊 Статистика графа:")
+    print(f"\n Статистика графа:")
     print(f"   Всего пакетов: {len(graph)}")
     total_dependencies = sum(len(deps) for deps in graph.values())
     print(f"   Всего зависимостей: {total_dependencies}")
     
     # Выводим граф в читаемом формате
-    print(f"\n🌳 Граф зависимостей:")
+    print(f"\n Граф зависимостей:")
     for package, deps in sorted(graph.items()):
         if deps:
             print(f"   {package} -> {', '.join(deps)}")
@@ -357,7 +357,7 @@ def find_reverse_dependencies(graph, target_package):
     """
     Находит обратные зависимости - пакеты, которые зависят от target_package
     """
-    print(f"🔍 Поиск обратных зависимостей для '{target_package}' в построенном графе...")
+    print(f" Поиск обратных зависимостей для '{target_package}' в построенном графе...")
     
     reverse_deps = []
     
@@ -367,7 +367,7 @@ def find_reverse_dependencies(graph, target_package):
         if target_package in dependencies:
             reverse_deps.append(package)
     
-    print(f"✅ Найдено обратных зависимостей в графе: {len(reverse_deps)}")
+    print(f" Найдено обратных зависимостей в графе: {len(reverse_deps)}")
     return reverse_deps
 
 def find_reverse_dependencies_advanced(config, target_package):
@@ -419,7 +419,7 @@ def find_reverse_dependencies_advanced(config, target_package):
     # Убираем дубликаты и сортируем
     reverse_deps = sorted(list(set(reverse_deps)))
     
-    print(f"✅ Найдено обратных зависимостей в репозитории: {len(reverse_deps)}")
+    print(f" Найдено обратных зависимостей в репозитории: {len(reverse_deps)}")
     return reverse_deps
 
 def stage4_reverse_dependencies(config, graph):
@@ -427,7 +427,7 @@ def stage4_reverse_dependencies(config, graph):
     Этап 4: Поиск обратных зависимостей
     """
     print("\n" + "="*50)
-    print("🚀 ЭТАП 4: Поиск обратных зависимостей")
+    print(" ЭТАП 4: Поиск обратных зависимостей")
     print("="*50)
     
     # Способ 1: Быстрый поиск в уже построенном графе (ограниченный)
@@ -438,11 +438,11 @@ def stage4_reverse_dependencies(config, graph):
     full_reverse_deps = find_reverse_dependencies_advanced(config, config['package_name'])
     
     # Выводим результаты
-    print(f"\n🔄 Пакеты, зависящие от '{config['package_name']}':")
+    print(f"\n Пакеты, зависящие от '{config['package_name']}':")
     
     if full_reverse_deps:
-        print(f"📊 Всего найдено: {len(full_reverse_deps)} пакетов")
-        print("\n📦 Первые 20 пакетов:")
+        print(f" Всего найдено: {len(full_reverse_deps)} пакетов")
+        print("\n Первые 20 пакетов:")
         for i, package in enumerate(full_reverse_deps[:20], 1):
             print(f"  {i}. {package}")
         
@@ -461,7 +461,7 @@ def generate_dot_graph(graph, main_package):
     """
     Генерирует DOT-код для Graphviz из графа зависимостей
     """
-    print("🔄 Генерация DOT-кода для визуализации...")
+    print(" Генерация DOT-кода для визуализации...")
     
     dot_lines = [
         "digraph Dependencies {",
@@ -484,14 +484,14 @@ def generate_dot_graph(graph, main_package):
     dot_lines.append("}")
     
     dot_content = "\n".join(dot_lines)
-    print("✅ DOT-код сгенерирован")
+    print(" DOT-код сгенерирован")
     return dot_content
 
 def save_graph_image(config, graph):
     """
     Сохраняет граф в PNG файл используя Graphviz
     """
-    print(f"💾 Сохранение графа в файл: {config['output_image']}")
+    print(f" Сохранение графа в файл: {config['output_image']}")
     
     # Генерируем DOT-код
     dot_content = generate_dot_graph(graph, config['package_name'])
@@ -511,17 +511,17 @@ def save_graph_image(config, graph):
         os.unlink(dot_path)
         
         if result.returncode == 0:
-            print(f"✅ Граф успешно сохранен в {config['output_image']}")
+            print(f" Граф успешно сохранен в {config['output_image']}")
             return True
         else:
-            print(f"❌ Ошибка Graphviz: {result.stderr}")
+            print(f" Ошибка Graphviz: {result.stderr}")
             return False
             
     except FileNotFoundError:
-        print("❌ Graphviz не установлен. Установите: 'brew install graphviz' или 'apt install graphviz'")
+        print(" Graphviz не установлен. Установите: 'brew install graphviz' или 'apt install graphviz'")
         return False
     except Exception as e:
-        print(f"❌ Ошибка при сохранении графа: {e}")
+        print(f" Ошибка при сохранении графа: {e}")
         return False
 
 def generate_text_visualization(graph, main_package):
@@ -550,7 +550,7 @@ def generate_text_visualization(graph, main_package):
         
         return tree
     
-    tree_visualization = f"🌳 Дерево зависимостей для '{main_package}':\n"
+    tree_visualization = f" Дерево зависимостей для '{main_package}':\n"
     tree_visualization += build_tree(main_package)
     
     return tree_visualization
@@ -561,11 +561,11 @@ def stage5_visualization(config, graph):
     Требование: Сформировать текстовое представление графа на языке диаграмм Graphviz
     """
     print("\n" + "="*50)
-    print("🎨 ЭТАП 5: Визуализация графа")
+    print(" ЭТАП 5: Визуализация графа")
     print("="*50)
     
     # Генерируем полный DOT-код
-    print("🔄 Формирование текстового представления графа на языке Graphviz...")
+    print(" Формирование текстового представления графа на языке Graphviz...")
     dot_content = generate_dot_graph(graph, config['package_name'])
     
     # СОХРАНЯЕМ полный DOT-код в файл (требование)
@@ -573,26 +573,26 @@ def stage5_visualization(config, graph):
     try:
         with open(dot_filename, 'w', encoding='utf-8') as f:
             f.write(dot_content)
-        print(f"💾 Полный DOT-код сохранен в файл: {dot_filename}")
+        print(f" Полный DOT-код сохранен в файл: {dot_filename}")
     except Exception as e:
-        print(f"❌ Ошибка сохранения DOT-файла: {e}")
+        print(f" Ошибка сохранения DOT-файла: {e}")
         return False
     
     # ВЫВОДИМ полное текстовое представление на языке Graphviz (требование этапа)
-    print(f"\n📋 ПОЛНОЕ ТЕКСТОВОЕ ПРЕДСТАВЛЕНИЕ ГРАФА НА ЯЗЫКЕ GRAPHVIZ:")
+    print(f"\n ПОЛНОЕ ТЕКСТОВОЕ ПРЕДСТАВЛЕНИЕ ГРАФА НА ЯЗЫКЕ GRAPHVIZ:")
     print("=" * 80)
     print(dot_content)
     print("=" * 80)
     
     # Дополнительная информация
-    print(f"\n📊 Статистика визуализации:")
+    print(f"\n Статистика визуализации:")
     print(f"   • Главный пакет: {config['package_name']}")
     print(f"   • Всего пакетов в графе: {len(graph)}")
     print(f"   • Всего зависимостей: {sum(len(deps) for deps in graph.values())}")
     print(f"   • Файл с DOT-кодом: {dot_filename}")
     
     # Инструкции для визуализации
-    print(f"\n🌐 Инструкции для визуализации:")
+    print(f"\n Инструкции для визуализации:")
     print(f"   1. Скопируйте ВЕСЬ текст выше (между линиями ====)")
     print(f"   2. Перейдите на https://edotor.net/")
     print(f"   3. Вставьте скопированный текст в левую панель")
@@ -628,7 +628,7 @@ def main():
     # Этап 5: Визуализация графа
     visualization_success = stage5_visualization(config, graph)
     
-    print("\n✅ Все этапы завершены!")
+    print("\n Все этапы завершены!")
     
     return config, dependencies, graph, reverse_deps, visualization_success
 

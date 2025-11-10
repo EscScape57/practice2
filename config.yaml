@@ -2,5 +2,5 @@ package_name: "A"
 repository_url: "test_repository.txt"
 test_mode: true
 output_image: "dependency_graph.png"
-max_depth: 3
+max_depth: 2
 filter_substring: ""
